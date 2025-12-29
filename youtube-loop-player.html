@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Loop Player - Variable Speed & Duration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .video-container {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .video-container.active {
+            display: block;
+        }
+
+        #player {
+            width: 100%;
+            height: 480px;
+        }
+
+        .info-panel {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info-panel.active {
+            display: block;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-indicator.playing {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.paused {
+            background: #ff9800;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #c62828;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 YouTube Loop Player</h1>
+        <p class="subtitle">Play videos on loop with variable speed & duration like a human</p>
+
+        <div class="instructions">
+            <h3>📋 How to use:</h3>
+            <ul>
+                <li>Paste a YouTube video URL or Video ID</li>
+                <li>Click "Start Loop Player" to begin</li>
+                <li>The video will automatically loop with different speeds and start positions</li>
+                <li>Each loop randomly varies speed (0.5x - 2x) and start position</li>
+            </ul>
+        </div>
+
+        <div class="input-section">
+            <div id="errorMessage" class="error-message"></div>
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="videoUrl" 
+                    placeholder="Enter YouTube URL or Video ID (e.g., dQw4w9WgXcQ)"
+                    value="">
+                <button id="startBtn" onclick="startPlayer()" disabled>Loading API...</button>
+            </div>
+        </div>
+
+        <div class="video-container" id="videoContainer">
+            <div id="player"></div>
+        </div>
+
+        <div class="info-panel" id="infoPanel">
+            <div class="info-row">
+                <span class="info-label">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    Status:
+                </span>
+                <span class="info-value" id="statusText">Ready</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Current Speed:</span>
+                <span class="info-value" id="speedText">1.0x</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Loop Count:</span>
+                <span class="info-value" id="loopCount">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Start Position:</span>
+                <span class="info-value" id="startPosition">0s</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Video Duration:</span>
+                <span class="info-value" id="videoDuration">--</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let player;
+        let loopCounter = 0;
+        let currentSpeed = 1.0;
+        let currentStartPos = 0;
+        let isPlaying = false;
+        let apiReady = false;
+
+        // Load YouTube IFrame API
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // Extract video ID from YouTube URL
+        function extractVideoId(url) {
+            // Handle different YouTube URL formats
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+                /^([a-zA-Z0-9_-]{11})$/  // Direct video ID
+            ];
+
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+
+        // Generate random playback speed between 0.5x and 2x
+        function getRandomSpeed() {
+            const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+            return speeds[Math.floor(Math.random() * speeds.length)];
+        }
+
+        // Generate random start position (0 to 30% of video duration)
+        function getRandomStartPosition(duration) {
+            if (!duration || duration <= 0) return 0;
+            const maxStart = duration * 0.3; // Start within first 30% of video
+            return Math.floor(Math.random() * maxStart);
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Hide error message
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+        }
+
+        // Initialize player
+        function onYouTubeIframeAPIReady() {
+            console.log('YouTube API Ready');
+            apiReady = true;
+            const btn = document.getElementById('startBtn');
+            btn.disabled = false;
+            btn.textContent = 'Start Loop Player';
+        }
+
+        function startPlayer() {
+            hideError();
+            
+            if (!apiReady) {
+                showError('YouTube API is still loading. Please wait a moment...');
+                return;
+            }
+
+            const urlInput = document.getElementById('videoUrl');
+            const videoId = extractVideoId(urlInput.value.trim());
+
+            if (!videoId) {
+                showError('Please enter a valid YouTube URL or Video ID');
+                return;
+            }
+
+            loopCounter = 0;
+            updateLoopCount();
+
+            // Show video container and info panel
+            document.getElementById('videoContainer').classList.add('active');
+            document.getElementById('infoPanel').classList.add('active');
+
+            // Destroy existing player if any
+            if (player) {
+                player.destroy();
+            }
+
+            // Create new player
+            player = new YT.Player('player', {
+                height: '480',
+                width: '100%',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 1,
+                    'rel': 0,
+                    'modestbranding': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+
+            updateStatus('Loading video...', false);
+        }
+
+        function onPlayerError(event) {
+            let errorMessage = 'Video playback error: ';
+            switch(event.data) {
+                case 2:
+                    errorMessage += 'Invalid video ID';
+                    break;
+                case 5:
+                    errorMessage += 'HTML5 player error';
+                    break;
+                case 100:
+                    errorMessage += 'Video not found or has been removed';
+                    break;
+                case 101:
+                case 150:
+                    errorMessage += 'Video owner does not allow embedding';
+                    break;
+                default:
+                    errorMessage += 'Unknown error occurred';
+            }
+            showError(errorMessage);
+            console.error('YouTube Player Error:', event.data);
+        }
+
+        function onPlayerReady(event) {
+            console.log('Player Ready');
+            const duration = player.getDuration();
+            
+            if (!duration || duration <= 0) {
+                showError('Unable to get video duration. This may be a live stream or unavailable video.');
+                return;
+            }
+            
+            document.getElementById('videoDuration').textContent = formatTime(duration);
+            
+            // Start first loop with random settings
+            startNewLoop();
+        }
+
+        function onPlayerStateChange(event) {
+            // YT.PlayerState.ENDED = 0
+            // YT.PlayerState.PLAYING = 1
+            // YT.PlayerState.PAUSED = 2
+            
+            if (event.data === YT.PlayerState.ENDED) {
+                // Video ended, start new loop
+                loopCounter++;
+                updateLoopCount();
+                startNewLoop();
+            } else if (event.data === YT.PlayerState.PLAYING) {
+                isPlaying = true;
+                updateStatus('Playing', true);
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                isPlaying = false;
+                updateStatus('Paused', false);
+            }
+        }
+
+        function startNewLoop() {
+            if (!player) return;
+
+            const duration = player.getDuration();
+            
+            // Set random speed
+            currentSpeed = getRandomSpeed();
+            player.setPlaybackRate(currentSpeed);
+            
+            // Set random start position
+            currentStartPos = getRandomStartPosition(duration);
+            player.seekTo(currentStartPos, true);
+            
+            // Play the video
+            player.playVideo();
+
+            // Update UI
+            updateSpeed();
+            updateStartPosition();
+            updateStatus('Playing', true);
+        }
+
+        function updateStatus(text, playing) {
+            document.getElementById('statusText').textContent = text;
+            const indicator = document.getElementById('statusIndicator');
+            if (playing) {
+                indicator.classList.add('playing');
+                indicator.classList.remove('paused');
+            } else {
+                indicator.classList.add('paused');
+                indicator.classList.remove('playing');
+            }
+        }
+
+        function updateSpeed() {
+            document.getElementById('speedText').textContent = currentSpeed.toFixed(2) + 'x';
+        }
+
+        function updateLoopCount() {
+            document.getElementById('loopCount').textContent = loopCounter;
+        }
+
+        function updateStartPosition() {
+            document.getElementById('startPosition').textContent = formatTime(currentStartPos);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Add enter key support
+        document.getElementById('videoUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startPlayer();
+            }
+        });
+    </script>
+</body>
+</html>

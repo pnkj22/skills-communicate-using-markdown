@@ -65,6 +65,23 @@ _Welcome to "Communicate using Markdown"! :wave:_
 1. Click **Commit changes**.
 1. Wait about 20 seconds then refresh this page (the one you're following instructions from). [GitHub Actions](https://docs.github.com/en/actions) will automatically update to the next step.
 
+## 🎬 Additional Tool: YouTube Loop Player
+
+This repository also includes a YouTube Loop Player tool that plays videos on loop with automatic variation in speed and start position, simulating human-like viewing behavior.
+
+**Features:**
+- Auto-loop with variable playback speeds (0.5x - 2x)
+- Random start positions for each loop
+- Real-time playback statistics
+- Clean, modern interface
+
+**How to use:**
+1. Open `youtube-loop-player.html` in your browser
+2. Paste a YouTube video URL or Video ID
+3. Click "Start Loop Player"
+
+For detailed documentation, see [YOUTUBE_LOOP_PLAYER.md](YOUTUBE_LOOP_PLAYER.md)
+
 <footer>
 
 <!--
