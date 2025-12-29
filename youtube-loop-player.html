@@ -189,6 +189,20 @@
         .instructions li {
             margin-bottom: 5px;
         }
+
+        .error-message {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #c62828;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -207,6 +221,7 @@
         </div>
 
         <div class="input-section">
+            <div id="errorMessage" class="error-message"></div>
             <div class="input-group">
                 <input 
                     type="text" 
@@ -287,8 +302,25 @@
 
         // Generate random start position (0 to 30% of video duration)
         function getRandomStartPosition(duration) {
+            if (!duration || duration <= 0) return 0;
             const maxStart = duration * 0.3; // Start within first 30% of video
             return Math.floor(Math.random() * maxStart);
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Hide error message
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
         }
 
         // Initialize player
@@ -301,8 +333,10 @@
         }
 
         function startPlayer() {
+            hideError();
+            
             if (!apiReady) {
-                alert('YouTube API is still loading. Please wait a moment...');
+                showError('YouTube API is still loading. Please wait a moment...');
                 return;
             }
 
@@ -310,7 +344,7 @@
             const videoId = extractVideoId(urlInput.value.trim());
 
             if (!videoId) {
-                alert('Please enter a valid YouTube URL or Video ID');
+                showError('Please enter a valid YouTube URL or Video ID');
                 return;
             }
 
@@ -339,16 +373,46 @@
                 },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
                 }
             });
 
             updateStatus('Loading video...', false);
         }
 
+        function onPlayerError(event) {
+            let errorMessage = 'Video playback error: ';
+            switch(event.data) {
+                case 2:
+                    errorMessage += 'Invalid video ID';
+                    break;
+                case 5:
+                    errorMessage += 'HTML5 player error';
+                    break;
+                case 100:
+                    errorMessage += 'Video not found or has been removed';
+                    break;
+                case 101:
+                case 150:
+                    errorMessage += 'Video owner does not allow embedding';
+                    break;
+                default:
+                    errorMessage += 'Unknown error occurred';
+            }
+            showError(errorMessage);
+            console.error('YouTube Player Error:', event.data);
+        }
+
         function onPlayerReady(event) {
             console.log('Player Ready');
             const duration = player.getDuration();
+            
+            if (!duration || duration <= 0) {
+                showError('Unable to get video duration. This may be a live stream or unavailable video.');
+                return;
+            }
+            
             document.getElementById('videoDuration').textContent = formatTime(duration);
             
             // Start first loop with random settings
